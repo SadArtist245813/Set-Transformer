@@ -8,6 +8,7 @@ import time
  
 import torch
 import torch.nn as nn
+# import load_data as data
 from torch.utils.data import DataLoader, TensorDataset, random_split
  
 from model import Transformer
