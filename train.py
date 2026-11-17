@@ -37,15 +37,22 @@ MODEL_CLASSES = {
     "sab": SAB_PMA,
     "baseline": MLPBaseline,
 }
-SET_SIZES = {"numerical": 100, "modelnet": 1024, "cifar": 144, "omniglot": 144}
+
+SET_SIZES = {
+    "numerical": 100,
+    "modelnet": 1024,
+    "cifar": 144,
+    "omniglot": 144,
+    "gaussian": 100,
+}
 
 CONFIG = {
     "numerical": (1, 1, "regression"),
     "modelnet": (3, 40, "classification"),
-    "cifar": (194, 100, "classification"),  # 8x8 RGB patches + 2D coordinates
-    "omniglot": (66, 64, "episodic"),  # 8x8 grayscale patches + 2D coordinates
+    "cifar": (194, 100, "classification"),
+    "omniglot": (66, 64, "episodic"),
+    "gaussian": (2, 4, "classification"),
 }
-
 
 def set_seed(seed):
     random.seed(seed)
@@ -209,14 +216,36 @@ def run_episodic_epoch(model, dataset, classes, ways, episodes, seed, device, op
     return total_loss / total_queries, total_correct / total_queries
 
 
+
 def create_ordinary_loaders(module, dataset, batch_size, train_fraction=1.0):
     functions = {
         "numerical": "load_NumericalSets",
         "modelnet": "load_ModelNet40",
         "cifar": "load_CIFAR100",
+        "gaussian": "load_GaussianMixtures",
     }
 
     train_set, test_set = getattr(module, functions[dataset])()
+
+    # Gaussian Mixtures originally returns one cluster label per point.
+    # Convert these into one label per set: 0, 1, 2, or 3.
+    if dataset == "gaussian":
+        def convert_labels(source):
+            points, labels = source.tensors
+
+            # Count the distinct clusters actually represented in each set.
+            cluster_counts = (
+                torch.nn.functional.one_hot(labels.long(), num_classes=4)
+                .any(dim=1)
+                .sum(dim=1)
+                .long()
+            )
+
+            targets = cluster_counts - 1
+            return torch.utils.data.TensorDataset(points, targets)
+
+        train_set = convert_labels(train_set)
+        test_set = convert_labels(test_set)
 
     n_val = max(1, int(len(train_set) * 0.1))
 
@@ -247,6 +276,7 @@ def create_ordinary_loaders(module, dataset, batch_size, train_fraction=1.0):
     test = DataLoader(test_set, batch_size=batch_size, shuffle=False, num_workers=0)
 
     return train, val, test
+
 
 
 def create_omniglot_data(module, ways):
