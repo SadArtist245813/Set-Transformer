@@ -1,4 +1,4 @@
-"""Train four set-based Transformer architectures on four datasets.
+"""Train Transformer architectures and a flattened MLP baseline on four datasets.
 
 Expected files:
   transformer.py: StandardTransformer
@@ -13,6 +13,7 @@ Examples:
 
 import argparse
 import copy
+import csv
 import importlib
 import inspect
 import random
@@ -26,6 +27,7 @@ from torch.utils.data import DataLoader, random_split
 
 from transformer import StandardTransformer
 from set_transformer import SetTransformer, ISAB_PMA, SAB_PMA
+from baseline import MLPBaseline
 
 SEED = 42
 MODEL_CLASSES = {
@@ -33,7 +35,10 @@ MODEL_CLASSES = {
     "set": SetTransformer,
     "isab": ISAB_PMA,
     "sab": SAB_PMA,
+    "baseline": MLPBaseline,
 }
+SET_SIZES = {"numerical": 100, "modelnet": 1024, "cifar": 144, "omniglot": 144}
+
 CONFIG = {
     "numerical": (1, 1, "regression"),
     "modelnet": (3, 40, "classification"),
@@ -51,6 +56,13 @@ def set_seed(seed):
 
 def make_model(name, dataset):
     input_dim, output_dim, _ = CONFIG[dataset]
+    if name == "baseline":
+        return MLPBaseline(
+            set_size=SET_SIZES[dataset],
+            dim_input=input_dim,
+            dim_hidden=420,
+            dim_output=output_dim,
+        )
     cls = MODEL_CLASSES[name]
     params = inspect.signature(cls).parameters
     kwargs = {}
@@ -258,6 +270,7 @@ def main():
     names = list(MODEL_CLASSES) if args.model == "all" else [args.model]
     summary = []
     Path("checkpoints").mkdir(exist_ok=True)
+    Path("results").mkdir(exist_ok=True)
     for name in names:
         set_seed(SEED)
         model = make_model(name, args.dataset).to(device)
@@ -267,6 +280,7 @@ def main():
         print(f"\n{'='*65}\n{name.upper()} / {args.dataset.upper()} / {n_params:,} parameters\n{'='*65}")
         best_loss, best_state = float("inf"), None
         start = time.time()
+        history = []
         for epoch in range(1, args.epochs + 1):
             if args.dataset == "omniglot":
                 train_loss, train_metric = run_episodic_epoch(
@@ -282,9 +296,20 @@ def main():
                 best_loss = val_loss
                 best_state = copy.deepcopy(model.state_dict())
             scheduler.step()
+            history.append({"epoch": epoch, "train_loss": train_loss,
+                            "train_metric": train_metric, "val_loss": val_loss,
+                            "val_metric": val_metric})
             metric_label = "MAE" if args.dataset == "numerical" else "accuracy"
             print(f"Epoch {epoch:02d}/{args.epochs} | train loss {train_loss:.4f} | "
                   f"val loss {val_loss:.4f} | val {metric_label} {val_metric:.4f}")
+
+        history_path = Path("results") / f"{args.dataset}_{name}_history.csv"
+        with history_path.open("w", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=["epoch", "train_loss", "train_metric",
+                                                   "val_loss", "val_metric"])
+            writer.writeheader()
+            writer.writerows(history)
+        print(f"Saved learning curve data: {history_path}")
 
         model.load_state_dict(best_state)
         if args.dataset == "omniglot":
@@ -297,7 +322,7 @@ def main():
         path = Path("checkpoints") / f"{args.dataset}_{name}.pt"
         torch.save({"state_dict": model.state_dict(), "dataset": args.dataset,
                     "model": name, "test_loss": test_loss, "test_metric": test_metric,
-                    "parameters": n_params}, path)
+                    "parameters": n_params, "epochs": args.epochs}, path)
         display = f"MAE {test_metric:.4f}" if args.dataset == "numerical" else f"accuracy {test_metric*100:.2f}%"
         print(f"TEST: loss {test_loss:.4f}, {display} | {seconds:.1f}s | saved {path}")
         summary.append((name, test_loss, test_metric, seconds))
