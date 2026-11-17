@@ -190,3 +190,69 @@ class SetTransformer(nn.Module):
         # Encode the unordered input set
         # Pool and transform the representations into predictions
         return self.dec(self.enc(X))
+
+class ISAB_PMA(nn.Module):
+    def __init__(self, dim_input=1, num_outputs=1, dim_output=1,
+                 num_inds=32, dim_hidden=128, num_heads=4, ln=False):
+        super().__init__()
+
+        # Encoder processes relationships between set elements
+        # First ISAB expands each scalar to 128 features
+        # Second ISAB further processes those learned features
+        self.enc = nn.Sequential(
+            ISAB(dim_input, dim_hidden, num_heads, num_inds, ln=ln),
+            ISAB(dim_hidden, dim_hidden, num_heads, num_inds, ln=ln)
+        )
+
+        # Decoder converts the encoded set into a prediction
+        # PMA pools the set into one learned representation
+        # Final linear layer maps 128 features to one scalar
+        self.dec = nn.Sequential(
+            PMA(dim_hidden, num_heads, num_outputs, ln=ln),
+            nn.Linear(dim_hidden, dim_output)
+        )
+
+    def forward(self, X):
+        # Encode the unordered input set
+        # Pool and transform the representations into predictions
+        return self.dec(self.enc(X))
+
+class SAB_PMA(nn.Module):
+    def __init__(self, dim_input=1, num_outputs=1, dim_output=1,
+                 dim_hidden=128, num_heads=4, ln=False):
+        super().__init__()
+
+        # Encoder processes relationships between set elements
+        # First SAB expands each scalar to 128 features
+        # Second SAB further processes those learned features
+        self.enc = nn.Sequential(
+            SAB(dim_input, dim_hidden, num_heads, ln=ln),
+            SAB(dim_hidden, dim_hidden, num_heads, ln=ln)
+        )
+
+        # Decoder converts the encoded set into a prediction
+        # PMA pools the set into one learned representation
+        # Final linear layer maps 128 features to one scalar
+        self.dec = nn.Sequential(
+            PMA(dim_hidden, num_heads, num_outputs, ln=ln),
+            nn.Linear(dim_hidden, dim_output)
+        )
+
+    def forward(self, X):
+        # Encode the unordered input set
+        # Pool and transform the representations into predictions
+        return self.dec(self.enc(X))
+
+if __name__ == "__main__":
+    X = torch.rand(8, 10, 1)
+
+    models = {
+        "Full Set Transformer": SetTransformer(),
+        "ISAB + PMA": ISAB_PMA(),
+        "SAB + PMA": SAB_PMA()
+    }
+
+    for name, model in models.items():
+        output = model(X)
+        print(f"{name}: {output.shape}")
+        print(f"Parameters: {sum(p.numel() for p in model.parameters()):,}")
