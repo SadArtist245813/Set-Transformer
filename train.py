@@ -209,22 +209,43 @@ def run_episodic_epoch(model, dataset, classes, ways, episodes, seed, device, op
     return total_loss / total_queries, total_correct / total_queries
 
 
-def create_ordinary_loaders(module, dataset, batch_size):
+def create_ordinary_loaders(module, dataset, batch_size, train_fraction=1.0):
     functions = {
         "numerical": "load_NumericalSets",
         "modelnet": "load_ModelNet40",
         "cifar": "load_CIFAR100",
     }
+
     train_set, test_set = getattr(module, functions[dataset])()
+
     n_val = max(1, int(len(train_set) * 0.1))
+
     train_set, val_set = random_split(
-        train_set, [len(train_set) - n_val, n_val],
+        train_set,
+        [len(train_set) - n_val, n_val],
         generator=torch.Generator().manual_seed(SEED),
     )
-    # Workers=0 is reliable on Windows; increase after everything works.
+
+    # Use a fixed, nested subset of the training split.
+    # Validation and test sets remain unchanged.
+    n_train = max(1, int(len(train_set) * train_fraction))
+
+    indices = torch.randperm(
+        len(train_set),
+        generator=torch.Generator().manual_seed(SEED)
+    )[:n_train].tolist()
+
+    train_set = torch.utils.data.Subset(train_set, indices)
+
+    print(f"Training fraction: {train_fraction:.0%}")
+    print(f"Training examples: {len(train_set)}")
+    print(f"Validation examples: {len(val_set)}")
+    print(f"Test examples: {len(test_set)}")
+
     train = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=0)
     val = DataLoader(val_set, batch_size=batch_size, shuffle=False, num_workers=0)
     test = DataLoader(test_set, batch_size=batch_size, shuffle=False, num_workers=0)
+
     return train, val, test
 
 
@@ -248,12 +269,20 @@ def main():
     parser.add_argument("--dataset", choices=list(CONFIG), default="numerical")
     parser.add_argument("--model", choices=["all", *MODEL_CLASSES], default="all")
     parser.add_argument("--epochs", type=int, default=10)
+    parser.add_argument(
+        "--train-fraction",
+        type=float,
+        default=1.0,
+        help="Fraction of the training split to use (0 < fraction <= 1)"
+    )   
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--data-module", default="load_data", help="Dataset loader filename without .py")
     parser.add_argument("--episodes", type=int, default=100, help="Omniglot training episodes per epoch")
     parser.add_argument("--eval-episodes", type=int, default=100, help="Omniglot validation/test episodes")
     parser.add_argument("--ways", type=int, default=5, help="Omniglot number of classes per episode")
     args = parser.parse_args()
+    if not 0 < args.train_fraction <= 1:
+        parser.error("--train-fraction must be between 0 and 1")
     if min(args.epochs, args.batch_size, args.episodes, args.eval_episodes) < 1 or args.ways < 2:
         parser.error("Epochs, batch size, episodes must be positive; ways >= 2")
 
@@ -265,7 +294,12 @@ def main():
     if args.dataset == "omniglot":
         train_data, test_data, train_classes, val_classes, test_classes = create_omniglot_data(module, args.ways)
     else:
-        train_loader, val_loader, test_loader = create_ordinary_loaders(module, args.dataset, args.batch_size)
+        train_loader, val_loader, test_loader = create_ordinary_loaders(
+            module,
+            args.dataset,
+            args.batch_size,
+            args.train_fraction
+        )
 
     names = list(MODEL_CLASSES) if args.model == "all" else [args.model]
     summary = []
@@ -303,7 +337,8 @@ def main():
             print(f"Epoch {epoch:02d}/{args.epochs} | train loss {train_loss:.4f} | "
                   f"val loss {val_loss:.4f} | val {metric_label} {val_metric:.4f}")
 
-        history_path = Path("results") / f"{args.dataset}_{name}_history.csv"
+        suffix = f"_fraction_{int(args.train_fraction * 100)}"
+        history_path = Path("results") / f"{args.dataset}_{name}{suffix}_history.csv"
         with history_path.open("w", newline="") as f:
             writer = csv.DictWriter(f, fieldnames=["epoch", "train_loss", "train_metric",
                                                    "val_loss", "val_metric"])
@@ -319,7 +354,7 @@ def main():
         else:
             test_loss, test_metric = run_ordinary_epoch(model, test_loader, args.dataset, device)
         seconds = time.time() - start
-        path = Path("checkpoints") / f"{args.dataset}_{name}.pt"
+        path = Path("checkpoints") / f"{args.dataset}_{name}{suffix}.pt"
         torch.save({"state_dict": model.state_dict(), "dataset": args.dataset,
                     "model": name, "test_loss": test_loss, "test_metric": test_metric,
                     "parameters": n_params, "epochs": args.epochs}, path)
