@@ -3,7 +3,7 @@
 Expected files:
   transformer.py: StandardTransformer
   set_transformer.py: SetTransformer, ISAB_PMA, SAB_PMA
-  load_data.py: load_NumericalSets, load_ModelNet40, load_CIFAR100, load_Omniglot
+  load_data.py: load_NumericalSets, load_ModelNet40, load_CIFAR10, load_Omniglot
 
 Examples:
   python train.py --dataset numerical --epochs 1
@@ -49,7 +49,7 @@ SET_SIZES = {
 CONFIG = {
     "numerical": (1, 1, "regression"),
     "modelnet": (3, 40, "classification"),
-    "cifar": (194, 100, "classification"),
+    "cifar": (194, 10, "classification"),
     "omniglot": (66, 64, "episodic"),
     "gaussian": (2, 4, "classification"),
 }
@@ -221,7 +221,7 @@ def create_ordinary_loaders(module, dataset, batch_size, train_fraction=1.0):
     functions = {
         "numerical": "load_NumericalSets",
         "modelnet": "load_ModelNet40",
-        "cifar": "load_CIFAR100",
+        "cifar": "load_CIFAR10",
         "gaussian": "load_GaussianMixtures",
     }
 
@@ -332,6 +332,7 @@ def main():
         )
 
     names = list(MODEL_CLASSES) if args.model == "all" else [args.model]
+    artifact_dataset = "cifar10" if args.dataset == "cifar" else args.dataset
     summary = []
     Path("checkpoints").mkdir(exist_ok=True)
     Path("results").mkdir(exist_ok=True)
@@ -368,7 +369,7 @@ def main():
                   f"val loss {val_loss:.4f} | val {metric_label} {val_metric:.4f}")
 
         suffix = f"_fraction_{int(args.train_fraction * 100)}"
-        history_path = Path("results") / f"{args.dataset}_{name}{suffix}_history.csv"
+        history_path = Path("results") / f"{artifact_dataset}_{name}{suffix}_history.csv"
         with history_path.open("w", newline="") as f:
             writer = csv.DictWriter(f, fieldnames=["epoch", "train_loss", "train_metric",
                                                    "val_loss", "val_metric"])
@@ -384,7 +385,7 @@ def main():
         else:
             test_loss, test_metric = run_ordinary_epoch(model, test_loader, args.dataset, device)
         seconds = time.time() - start
-        path = Path("checkpoints") / f"{args.dataset}_{name}{suffix}.pt"
+        path = Path("checkpoints") / f"{artifact_dataset}_{name}{suffix}.pt"
         torch.save({"state_dict": model.state_dict(), "dataset": args.dataset,
                     "model": name, "test_loss": test_loss, "test_metric": test_metric,
                     "parameters": n_params, "epochs": args.epochs}, path)

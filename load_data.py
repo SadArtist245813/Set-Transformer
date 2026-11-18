@@ -36,13 +36,21 @@ def load_Omniglot():
 
     return train_dataset, test_dataset
 
-# CIFAR100
+# RGB image datasets
 def _rgb_transform():
     return transforms.Compose([
         transforms.Resize((96, 96)),
         transforms.ToTensor(),
         transforms.Normalize((0.5,) * 3, (0.5,) * 3),
     ])
+
+def load_CIFAR10(root="./data", *, download=True):
+    """Return official training and test splits of (RGB image, class ID)."""
+    transform = _rgb_transform()
+    train = datasets.CIFAR10(root, train=True, download=download, transform=transform)
+    test = datasets.CIFAR10(root, train=False, download=download, transform=transform)
+    return train, test
+
 
 def load_CIFAR100(root="./data", *, download=True):
     """Return official training and test splits of (RGB image, class ID)."""
