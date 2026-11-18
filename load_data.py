@@ -69,8 +69,13 @@ def load_CelebA(root="./data", *, download=True):
     )
 
 # ModelNet40
-from torch_geometric.datasets import ModelNet
-from torch_geometric.transforms import NormalizeScale, SamplePoints
+try:
+    from torch_geometric.datasets import ModelNet
+    from torch_geometric.transforms import NormalizeScale, SamplePoints
+except ImportError:
+    ModelNet = None
+    NormalizeScale = None
+    SamplePoints = None
 
 class _ModelNetPointClouds(Dataset):
     def __init__(self, meshes):
