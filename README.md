@@ -69,9 +69,6 @@ baseline torch.Size([8, 10])
 Printing shapes checks inference. It does not train the models or calculate
 test accuracy.
 
-Historical CIFAR-100 notebook outputs and figures describe a different experiment
-and are not CIFAR-10 results.
-
 ## Project files
 
 | File or folder | Purpose |
