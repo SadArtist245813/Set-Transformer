@@ -1,4 +1,4 @@
-"""CIFAR-100 inference API.
+"""CIFAR-10 inference API.
 
 Include these files beside this module when packaging the project:
   model_assets/symmetric.pt     full Set Transformer trained checkpoint
@@ -46,9 +46,9 @@ def load_model(kind):   # kind is "symmetric" or "baseline"
         raise ValueError("kind must be 'symmetric' or 'baseline'")
     checkpoint = _load_asset(f"{kind}.pt")
     state = checkpoint.get("state_dict", checkpoint)
-    model = (_SetClassifier(dim_input=194, dim_output=100)
+    model = (_SetClassifier(dim_input=194, dim_output=10)
              if kind == "symmetric" else
-             MLPBaseline(set_size=144, dim_input=194, dim_output=100))
+             MLPBaseline(set_size=144, dim_input=194, dim_output=10))
     model.load_state_dict(state, strict=True)
     return model.to(_device()).eval()
 
@@ -59,7 +59,7 @@ def sample_batch():
     inputs = saved["inputs"] if isinstance(saved, dict) else saved
     if (not isinstance(inputs, torch.Tensor) or inputs.ndim != 3
             or inputs.shape[0] == 0 or inputs.shape[1:] != (144, 194)):
-        raise ValueError("CIFAR-100 test inputs must have shape (B, 144, 194)")
+        raise ValueError("CIFAR-10 test inputs must have shape (B, 144, 194)")
     if not inputs.is_floating_point() or not torch.isfinite(inputs).all():
         raise ValueError("Test inputs must contain finite floating-point features")
     return inputs.to(_device(), dtype=torch.float32)

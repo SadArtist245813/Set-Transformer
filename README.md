@@ -7,7 +7,8 @@ and an MLP baseline on learning from sets.
 The project includes a full Set Transformer, ISAB + PMA and SAB + PMA variants,
 a standard Transformer, and an MLP baseline. Experiments cover numerical
 maximum-value regression, Gaussian mixture cluster counting, and image
-classification using sets of image patches. Saved notebooks and figures are
+classification using sets of image patches. The inference API targets CIFAR-10,
+with one score for each of its 10 image classes. Saved notebooks and figures are
 available in `notebooks/` and `results/`.
 
 ## Installation
@@ -16,6 +17,7 @@ Install Git and Python 3.10 or newer. Run the following commands in a terminal:
 
 ```bash
 git clone https://github.com/SadArtist245813/Set-Transformer.git
+cd Set-Transformer
 ```
 
 Install the dependencies:
@@ -34,7 +36,7 @@ The script imports `load_model` and `sample_batch` from `model_api.py`, loads
 the symmetric Set Transformer and the MLP baseline, runs each model on the
 sample inputs, and prints the output shapes.
 
-The CIFAR-100 inference API requires these files beside the source modules:
+The CIFAR-10 inference API requires these files beside the source modules:
 
 ```text
 model_assets/
@@ -44,10 +46,14 @@ model_assets/
 ```
 
 `symmetric.pt` and `baseline.pt` must contain the corresponding trained
-CIFAR-100 model weights. They may contain a plain state dictionary or a
+CIFAR-10 model weights with 10 output classes. They may contain a plain state dictionary or a
 checkpoint dictionary with a `state_dict` entry. `sample_batch.pt` must contain
 real preprocessed test inputs shaped `(B, 144, 194)`, either as a tensor or a
 dictionary with an `inputs` tensor.
+
+The input representation resizes each image to 96 x 96 pixels and divides it
+into 144 patches. Each patch contains 192 RGB values and two spatial coordinates,
+giving 194 features. Both classifiers return `(B, 10)` class scores.
 
 **These artifacts are not currently included.** Until they are supplied,
 `test_models.py` raises a missing-file error. It does not substitute untrained
@@ -56,12 +62,15 @@ the GPU when available, otherwise the CPU. With eight test examples, the
 expected output is:
 
 ```text
-symmetric torch.Size([8, 100])
-baseline torch.Size([8, 100])
+symmetric torch.Size([8, 10])
+baseline torch.Size([8, 10])
 ```
 
 Printing shapes checks inference. It does not train the models or calculate
 test accuracy.
+
+Historical CIFAR-100 notebook outputs and figures describe a different experiment
+and are not CIFAR-10 results.
 
 ## Project files
 
