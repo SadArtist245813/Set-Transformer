@@ -7,8 +7,7 @@ and an MLP baseline on learning from sets.
 The project includes a full Set Transformer, ISAB + PMA and SAB + PMA variants,
 a standard Transformer, and an MLP baseline. Experiments cover numerical
 maximum-value regression, Gaussian mixture cluster counting, and image
-classification using sets of image patches. The inference API targets CIFAR-10,
-with one score for each of its 10 image classes. Saved notebooks and figures are
+classification using sets of image patches. Saved notebooks and figures are
 available in `notebooks/` and `results/`.
 
 ## Installation
