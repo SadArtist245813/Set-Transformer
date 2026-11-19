@@ -55,12 +55,6 @@ The input representation resizes each image to 96 x 96 pixels and divides it
 into 144 patches. Each patch contains 192 RGB values and two spatial coordinates,
 giving 194 features. Both classifiers return `(B, 10)` class scores.
 
-**These artifacts are not currently included.** Until they are supplied,
-`test_models.py` raises a missing-file error. It does not substitute untrained
-models or synthetic examples. After the artifacts are added, both models use
-the GPU when available, otherwise the CPU. With eight test examples, the
-expected output is:
-
 ```text
 symmetric torch.Size([8, 10])
 baseline torch.Size([8, 10])
