@@ -38,10 +38,58 @@ sample inputs, and prints the output shapes.
 Printing shapes checks inference. It does not train the models or calculate
 test accuracy.
 
+## Using the inference API
+
+The project provides two pretrained CIFAR-10 classifiers through `model_api.py`:
+
+- `symmetric`: Full Set Transformer
+- `baseline`: MLP baseline
+
+Both models can be loaded and evaluated without downloading datasets or retraining.
+
+```python
+from model_api import load_model, sample_batch
+
+inputs = sample_batch()
+
+symmetric = load_model("symmetric")
+baseline = load_model("baseline")
+
+print(symmetric(inputs).shape)
+print(baseline(inputs).shape)
+```
+
+Expected output:
+
+```text
+torch.Size([8, 10])
+torch.Size([8, 10])
+```
+
+The API automatically uses a GPU when CUDA is available and otherwise runs on the CPU.
+
+The three required files (`symmetric.pt`, `baseline.pt`, and `sample_batch.pt`) are included in the installation package. The package was tested successfully from outside the project directory.
+
 ## Run on the a HPC
 
 Every test was ran using 1 cpu, 1 gpu 32gb of ram.
 The notebooks folder has the files used to run the different tests.
+
+## Training and reproducibility
+
+The main training entry point is `train.py`.
+
+For example, to train all five architectures on CIFAR-10 for 20 epochs:
+
+```bash
+python train.py --dataset cifar --model all --epochs 20
+```
+
+The project experiments were conducted using high-performance computing resources. Training requires access to the relevant datasets and a compatible Python environment.
+
+Experiment notebooks and saved figures are available in `notebooks/` and `results/`.
+
+The pretrained inference API does not require running the training scripts.
 
 ## Results
 
