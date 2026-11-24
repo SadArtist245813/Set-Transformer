@@ -128,6 +128,12 @@ and test accuracy comparisons, are available in `results/`.
 | `model_assets/` | Pretrained model weights and sample inputs |
 | `checkpoints/` | Saved training checkpoints |
 
+## Authors
+
+Jimmy Finnegan - Programming and HPC Configuration
+Vidhula Oviya Vasanthan - Presentation Management
+Justin Hortopanu - PyTorch Modeling, Project Management and Analysis  
+
 ## Reference
 
 Lee et al. (2019). [Set Transformer: A Framework for
