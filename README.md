@@ -12,8 +12,8 @@ available in `notebooks/` and `results/`.
 
 ## Authors
 
-Jimmy Finnegan - Programming and HPC Configuration
-Vidhula Oviya Vasanthan - Presentation Management
+Jimmy Finnegan - Programming and HPC Configuration\
+Vidhula Oviya Vasanthan - Presentation Management\
 Justin Hortopanu - PyTorch Modeling, Project Management and Analysis  
 
 ## Installation
