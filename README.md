@@ -10,6 +10,12 @@ maximum-value regression, Gaussian mixture cluster counting, and image
 classification using sets of image patches. Saved notebooks and figures are
 available in `notebooks/` and `results/`.
 
+## Authors
+
+Jimmy Finnegan - Programming and HPC Configuration
+Vidhula Oviya Vasanthan - Presentation Management
+Justin Hortopanu - PyTorch Modeling, Project Management and Analysis  
+
 ## Installation
 
 Install Git and Python 3.10 or newer. Run the following commands in a terminal:
@@ -127,12 +133,6 @@ and test accuracy comparisons, are available in `results/`.
 | `pyproject.toml` | Package installation and dependencies |
 | `model_assets/` | Pretrained model weights and sample inputs |
 | `checkpoints/` | Saved training checkpoints |
-
-## Authors
-
-Jimmy Finnegan - Programming and HPC Configuration
-Vidhula Oviya Vasanthan - Presentation Management
-Justin Hortopanu - PyTorch Modeling, Project Management and Analysis  
 
 ## Reference
 
